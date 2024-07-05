@@ -7,7 +7,7 @@ from config import Config
 db = SQLAlchemy()
 migrate = Migrate()
 login = LoginManager()
-login.login_view = 'login'
+login.login_view = 'main.login'
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -17,7 +17,8 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
     login.init_app(app)
 
-    from app import routes, models
+    from app import routes, models  # Make sure models are imported
+
     app.register_blueprint(routes.bp)
 
     return app
