@@ -1,55 +1,41 @@
-from datetime import datetime
-from werkzeug.security import generate_password_hash, check_password_hash
+from app import db, login_manager
 from flask_login import UserMixin
-from app import db, login
+from datetime import datetime
 
-class User(UserMixin, db.Model):
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), index=True, unique=True, nullable=False)
-    email = db.Column(db.String(120), index=True, unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
-    products = db.relationship('Product', backref='seller', lazy='dynamic')
-    orders = db.relationship('Order', backref='buyer', lazy='dynamic')
-
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-    def __repr__(self):
-        return f'<User {self.username}>'
-
-class Category(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64), unique=True, nullable=False)
-    products = db.relationship('Product', backref='category', lazy='dynamic')
-
-    def __repr__(self):
-        return f'<Category {self.name}>'
+    username = db.Column(db.String(20), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(60), nullable=False)
+    role = db.Column(db.String(10), nullable=False, default='buyer')
+    products = db.relationship('Product', backref='seller', lazy=True)
+    orders = db.relationship('Order', backref='buyer', lazy=True)
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(140), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
     price = db.Column(db.Float, nullable=False)
-    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
-    order_items = db.relationship('OrderItem', backref='product', lazy='dynamic')
+    category = db.Column(db.String(50), nullable=False)
+    stock = db.Column(db.Integer, nullable=False, default=0)
+    seller_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
-    def __repr__(self):
-        return f'<Product {self.name}>'
+class CartItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    order_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     total_amount = db.Column(db.Float, nullable=False)
-    order_items = db.relationship('OrderItem', backref='order', lazy='dynamic')
-
-    def __repr__(self):
-        return f'<Order {self.id} by {self.buyer.username}>'
+    items = db.relationship('OrderItem', backref='order', lazy=True)
 
 class OrderItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -57,10 +43,3 @@ class OrderItem(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     price = db.Column(db.Float, nullable=False)
-
-    def __repr__(self):
-        return f'<OrderItem {self.product.name} x {self.quantity}>'
-
-@login.user_loader
-def load_user(id):
-    return User.query.get(int(id))
