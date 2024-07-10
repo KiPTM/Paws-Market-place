@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+{% block content %}
+  <div class="container mt-4">
+    <h1>Your Shopping Cart</h1>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Quantity</th>
+          <th>Price</th>
+          <th>Total</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in cart_items %}
+          <tr>
+            <td>{{ item.product.name }}</td>
+            <td>
+              <form method="POST" action="{{ url_for('update_cart', cart_item_id=item.id) }}">
+                <input type="number" name="quantity" value="{{ item.quantity }}" class="form-control">
+                <button type="submit" class="btn btn-primary mt-2">Update</button>
+              </form>
+            </td>
+            <td>${{ item.product.price }}</td>
+            <td>${{ item.product.price * item.quantity }}</td>
+            <td>
+              <form method="POST" action="{{ url_for('update_cart', cart_item_id=item.id) }}">
+                <input type="hidden" name="quantity" value="0">
+                <button type="submit" class="btn btn-danger mt-2">Remove</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="text-right">
+      <a href="{{ url_for('checkout') }}" class="btn btn-success">Proceed to Checkout</a>
+    </div>
+  </div>
+{% endblock %}
